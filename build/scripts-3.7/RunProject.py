@@ -1,3 +1,5 @@
+#!python
+
 import os
 import sys
 from agrimetscraper.schedulertools.scheduler import Scheduler

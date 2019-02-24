@@ -1,3 +1,4 @@
+#!python
 import os
 import argparse
 import sqlite3
@@ -6,6 +7,8 @@ from agrimetscraper.utils.settings import basic_settings
 from agrimetscraper.utils.configsetter import MyConfig
 from agrimetscraper.utils.mylogger import SetLog
 import shutil
+from agrimetscraper.template import RunProject
+
 
 
 def StartProject():
@@ -98,8 +101,10 @@ def StartProject():
 	logger.info('Project Initialized')
 
 
-	# copy run.py to location
-	shutil.copy2('RunProject.py', exec_path)
+	# copy RunProject.py to location
+    		
+	runproject_path = os.path.realpath(RunProject.__file__)
+	shutil.copy2(runproject_path, exec_path)
 	print('\nProject has been initialized')
 
 if __name__ == '__main__':
