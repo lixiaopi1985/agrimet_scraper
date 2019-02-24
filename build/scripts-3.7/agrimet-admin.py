@@ -8,7 +8,7 @@ from agrimetscraper.utils.configsetter import MyConfig
 from agrimetscraper.utils.mylogger import SetLog
 import shutil
 from agrimetscraper.template import RunProject
-
+from agrimetscraper.template import pipeline
 
 
 def StartProject():
@@ -104,7 +104,9 @@ def StartProject():
 	# copy RunProject.py to location
     		
 	runproject_path = os.path.realpath(RunProject.__file__)
+	pipeline_path = os.path.realpath(pipeline.__file__)
 	shutil.copy2(runproject_path, exec_path)
+	shutil.copy2(pipeline_path, exec_path)
 	print('\nProject has been initialized')
 
 if __name__ == '__main__':

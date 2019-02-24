@@ -12,7 +12,7 @@ def TableToSql(dbpath, df, newtable):
 		conn = dbconnect(dbpath)
 		df.to_sql(newtablename, conn)
     	
-def __UrlEncodedQuery(**kwargs):
+def UrlEncodedQuery(**kwargs):
     
 	kw_copy = kwargs.copy()
 	for key, value in kwargs.items():
@@ -23,7 +23,7 @@ def __UrlEncodedQuery(**kwargs):
 	return urllib.parse.urlencode(kw_copy)
 
 
-def __UrlJoin(baseurl, encoded_query):
+def UrlJoin(baseurl, encoded_query):
 	return baseurl+encoded_query
 
 # def DataToSql_Decorator(dbpath, dbtable):

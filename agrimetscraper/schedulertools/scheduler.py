@@ -11,15 +11,19 @@ class Scheduler:
 		self.file2run = file2run
 		self.job = None
 
-	def Addjob(self):
+	def Addjob(self, *args):
 
 		change_dir = "cd {}".format(self.cwd)
 
-		self.job = self._crontab.new(
-			command = '{} && {} {}'.format(change_dir, self.pypath, self.file2run)
-		)
-
-
+		if len(args) > 0:
+			self.job = self._crontab.new(
+				command = '{} && {} {} {}'.format(change_dir, self.pypath, self.file2run, args[0])
+			)
+		else:
+    			self.job = self._crontab.new(
+				command = '{} && {} {}'.format(change_dir, self.pypath, self.file2run)
+			)
+    			
 		return self
 
 	def SetJob(self,**kwargs):

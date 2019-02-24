@@ -45,13 +45,9 @@ class Crawler:
 
 		config.Setcfg('DB_SETTINGS', 'weathertable', weathertable)
 
-		sites = UrlAssembly.GetSites(cfg_path)
 		urls = UrlAssembly.GetUrls(cfg_path)
 
 		big_df = cls.__MultipleUrlToDataframe(urls, params)
-
-
-		conn = dbconnect(dbpath)
 
 		print('Writing data to the database')
 		DataToSql.WriteToSql(dbpath, weathertable, big_df)

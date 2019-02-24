@@ -154,8 +154,8 @@ class DailyDataSummarise:
 
 		self.config = configsetter.Configger(cfg_path)
 		self.dbpath = self.config.Getcfg('DB_SETTINGS', 'database_path')
-		self.weathertable = self.config.Getcfg('DB_SETTINGS', 'Weather_data')
-		self.params =  self.config.Getcfg('URL_SETINGS', 'weather_parameters')
+		self.weathertable = self.config.Getcfg('DB_SETTINGS', 'weathertable')
+		self.params =  self.config.Getcfg('URL_SETTINGS', 'weather_parameters')
 
 	def DumpToCsv(self):
 		"""

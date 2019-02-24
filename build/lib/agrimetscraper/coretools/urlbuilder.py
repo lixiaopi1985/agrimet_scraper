@@ -55,7 +55,7 @@ class UrlAssembly:
 
 
 	@staticmethod
-	def GetSites(cfg_path): 
+	def __GetSites(cfg_path): 
 
 		Validator.path_checker(cfg_path)
 
@@ -86,8 +86,8 @@ class UrlAssembly:
 
 
 		try:
-			conn = dbconnect(dbpath)
 			logger.info('Open database in {}'.format(__name__))
+			conn = dbconnect(dbpath)
 		except:
 			logger.error('Error in open database in {}'.format(__name__))
 			print('Error in open database in {}'.format(__name__))
@@ -125,16 +125,16 @@ class UrlAssembly:
 
 		params = StringToList(wparams)
 
-		sites = UrlAssembly.GetSites(cfg_path)
+		sites = UrlAssembly.__GetSites(cfg_path)
 
 		logger.info('Unpacking sites and parameters')
 		preProcess = UrlPreprocessor(sites, params)
 		unpack_sites = [ i for i in preProcess.UrlPipeline()]
 
-		queries = [ decorators.__UrlEncodedQuery(list=i, format=urlformat, start=start_time, end=end_time, back=backdays) for i in unpack_sites]
+		queries = [ decorators.UrlEncodedQuery(list=i, format=urlformat, start=start_time, end=end_time, back=backdays) for i in unpack_sites]
 
 		logger.info('Making Urls')
-		urls = [ decorators.__UrlJoin(baseurl, i) for i in queries]
+		urls = [ decorators.UrlJoin(baseurl, i) for i in queries]
 
 		logger.info('Urls Generated')
 		print('Urls Generated')
