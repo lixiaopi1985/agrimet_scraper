@@ -42,7 +42,7 @@ def Pipelines(cfg_path):
 	
 	try:
 		logger.info('Create Ram Table')
-		summ.TableRam()
+		df.TableRam()
 	except:
 		logger.exception('An error occured during Ram Table', exc_info=True)
 		print('An error occured during Ram Table')
@@ -56,7 +56,7 @@ def Pipelines(cfg_path):
 		print('An error occured during Rja Table')
 		sys.exit(1)
 
-		
+
 	try:
 		logger.info('Create Pm Table')
 		df.TablePm()
