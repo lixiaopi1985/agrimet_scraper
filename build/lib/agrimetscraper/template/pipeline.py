@@ -33,18 +33,40 @@ def Pipelines(cfg_path):
 	# Datasummary
 	try:
 		logger.info('Summarise weather data')
-		summ = DailyDataSummarise(cfg_path).DumpToCsv()
+		summ = DailyDataSummarise(cfg_path)
+		df = summ.DumpToCsv()
 	except:
 		logger.exception('An error occured in DailyDataSummarise', exc_info=True)
 		print('An error occured in DailyDataSummarise')
 		sys.exit(1)
 	
+	try:
+		logger.info('Create Ram Table')
+		summ.TableRam()
+	except:
+		logger.exception('An error occured during Ram Table', exc_info=True)
+		print('An error occured during Ram Table')
+		sys.exit(1)
 
-	summ.TableRam()
-	summ.TableRja()
-	summ.TablePm()
+	try:
+		logger.info('Create Raj Table')
+		df.TableRja()
+	except:
+		logger.exception('An error occured during Rja Table', exc_info=True)
+		print('An error occured during Rja Table')
+		sys.exit(1)
 
-	logger.info('\nWeather data has been successfully updated and summarized')
+		
+	try:
+		logger.info('Create Pm Table')
+		df.TablePm()
+	except:
+		logger.exception('An error occured during Pm Table', exc_info=True)
+		print('An error occured during Pm Table')
+		sys.exit(1)
+
+
+	logger.info('Weather data has been successfully updated and summarized\n')
 	print('Weather data has been successfully updated and summarized')
 
 

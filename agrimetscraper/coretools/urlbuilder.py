@@ -102,9 +102,13 @@ class UrlAssembly:
 	@classmethod
 	def GetUrls(cls, cfg_path):		
 
-		Validator.path_checker(cfg_path)
 		# set up logger
 		logger = SetLog(cfg_path, 'UrlAssembly||GetUrls')
+
+		try:
+			Validator.path_checker(cfg_path)
+		except:
+			logger.error('cfg_path is not valid')
 
 
 		config = Configger(cfg_path)

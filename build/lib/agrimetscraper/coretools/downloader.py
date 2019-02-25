@@ -11,8 +11,10 @@ class Downloader:
 	@classmethod
 	def  download(cls, url):
 
-
-		Validator.url_validator(url)
+		try:
+			Validator.url_validator(url)
+		except:
+			print('Bad cfg_path')
 
 		response = requests.get(url)
 
