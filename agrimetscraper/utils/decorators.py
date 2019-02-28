@@ -10,7 +10,7 @@ def TableToSql(dbpath, df, newtable):
     	
 		newtablename = newtable
 		conn = dbconnect(dbpath)
-		df.to_sql(newtablename, conn)
+		df.to_sql(newtablename, conn, if_exists='replace')
     	
 def UrlEncodedQuery(**kwargs):
     
