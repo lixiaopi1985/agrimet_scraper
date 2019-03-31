@@ -20,7 +20,6 @@ class Validator:
 		except requests.exceptions.Timeout as errt:
 			print('Timeout Error in Url Validation: {}'.format(errt))
 		except requests.exceptions.RequestException as err:
-			logger.exception("Unknown Error: {}".format(err))
 			print('Unknown Error in Url Validation: {}'.format(err))
 			sys.exit(1)
 

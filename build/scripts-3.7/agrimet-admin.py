@@ -15,7 +15,7 @@ def StartProject():
 
 	parser = argparse.ArgumentParser(
 		prog='StartProject',
-		usage='python startproject.py -p myproject',
+		usage='agrimet-admin.py -p myproject',
 		description='Initialize project'
 		)
 

@@ -1,6 +1,5 @@
 import numpy as np
 import pandas as pd
-from tqdm import tqdm
 from agrimetscraper.utils import configsetter, dbopen, converters, mylogger, validations, decorators
 
 
@@ -8,6 +7,7 @@ from agrimetscraper.utils import configsetter, dbopen, converters, mylogger, val
 class Dataprocessor:
 	"""
 	From requests string to dataframe
+	This class builds weather data to dataframe[not database yet]
 	"""
 
 	@staticmethod
@@ -68,7 +68,7 @@ class Dataprocessor:
 			dates = cls.__extractdates(data_string)
 			sites = cls.__extractsites(description)
 			wdata = cls.__datatoarray(data_string, num_params)
-			df = pd.DataFrame(wdata, columns= list(params))
+			df = pd.DataFrame(wdata, columns= list(params), dtype="object")
 
 		except:
 			print('Error occured when forming database')
@@ -110,13 +110,19 @@ class DataToSql:
 
 		existed = cur.fetchall()
 
-
 		conn.close()
 
 		return existed
 
 	@classmethod
 	def WriteToSql(cls, dbpath, dbtable, df):
+		"""Append data to df
+		
+		Arguments:
+			dbpath {[type]} -- [description]
+			dbtable {[type]} -- [description]
+			df {data frame} -- [description]
+		"""
 
 
 		cols = df.columns
@@ -131,7 +137,7 @@ class DataToSql:
 		cur = conn.cursor()
 
 		try:
-			for i in tqdm(range(len(df))):
+			for i in range(len(df)):
 				row = tuple(df.iloc[i, :])
 				if not row in existed:
 					cur.execute(sql, row)
