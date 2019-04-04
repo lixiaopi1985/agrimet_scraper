@@ -7,7 +7,7 @@ def StringToList(string, sep = ','):
 	return string.split(sep)
 
 
-def TemperatureConvert(temperature, direction=1):
+def TemperatureConverter(temperature, direction=1):
 	"""
 	direction 1: from fahrenheit to celsius
 	direction 2: from celsius to fahrenheit

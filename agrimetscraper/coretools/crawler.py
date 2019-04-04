@@ -1,56 +1,74 @@
-from agrimetscraper.coretools.dataprocess import Dataprocessor
-from agrimetscraper.coretools.dataprocess import DataToSql
-from agrimetscraper.coretools.downloader import Downloader
-from agrimetscraper.coretools.urlbuilder import UrlAssembly
-from agrimetscraper.utils.dbopen import dbconnect
-from agrimetscraper.utils.configsetter import Configger
-import pandas as pd
-from agrimetscraper.utils.converters import StringToList
+import requests
+from fake_useragent import UserAgent
+import sys
+from agrimetscraper.utils.helpertools import urlcheck, urlformatdetect
+
 
 class Crawler:
 
-	def __init__(self, url):
-		self.url = url
+    ua = UserAgent()
+    
+    def __init__(self, url):
+        self.url = url
 
-	@staticmethod
-	def __SingleUrlToDataframe(url, params):
+    def startcrawl(self, logger):
+        """crawl the url provided
 
-		data, description = Downloader.download(url)
+            return response text 
+        """
+        headers = {'user-agent': Crawler.ua.random}
 
-		one_df = [ Dataprocessor.Makedf(i, description, params) for i in data ]
+        if urlcheck(self.url): 
+            pass
+        else:
+            logger.error("url error --- not valid")
+            raise ValueError("Url is not valid. Please check it")
 
-		return pd.concat(one_df)
+        try:
 
-	@staticmethod
-	def __MultipleUrlToDataframe(urls, params):
-		assert type(urls) == list, "Urls is type of a list"
+            self.response = requests.get(self.url, headers=headers)
+            logger.info(f"Crawl Status: {self.response.status_code}")
+            self.response.raise_for_status()
+        except requests.ConnectionError:
+            print("Error: Connection error")
+            logger.error(f"Error in {__file__}: Connection Error")
+            sys.exit(1)
+        except requests.Timeout:
+            print("Error: Timeout")
+            logger.error(f"Error in {__file__}: Timeout Error")
+            sys.exit(1)
+        except requests.HTTPError:
+            print("Error: Http error")
+            logger.error(f"Error in {__file__}: Http Error")
+            sys.exit(1)
 
-		weather_df = [ Crawler.__SingleUrlToDataframe(i, params) for i in urls ]
-
-		return pd.concat(weather_df)
+        return self.response.text
 
 
+    def checkstatus(self):
+        return self.response.status_code
 
-	@classmethod
-	def WriteCrawlToSql(cls, cfg_path):
 
-		config = Configger(cfg_path)
+    def geturlformat(self):
+        """detect url format, can parse it to dataprocess object 
+        
+        Returns:
+            string -- html or csv or Not Found
+        """
 
-		wparams = config.Getcfg('URL_SETTINGS', 'weather_parameters')
-		params = StringToList(wparams)
+        return urlformatdetect(self.url)
 
-		print("Write weather table to configure file")
-		dbpath = config.Getcfg('DB_SETTINGS', 'database_path')
-		weathertable = 'Weather_data'
 
-		config.Setcfg('DB_SETTINGS', 'weathertable', weathertable)
 
-		urls = UrlAssembly.GetUrls(cfg_path)
+    def __str__(self):
+        return f"startcrawl url: {self.url}, status: {self.response.status_code}"
 
-		big_df = cls.__MultipleUrlToDataframe(urls, params)
 
-		print('Writing data to the database')
-		DataToSql.WriteToSql(dbpath, weathertable, big_df)
+
+        
+
+
+        
 
 
 

@@ -1,154 +1,113 @@
-import urllib
-from datetime import datetime
+"""Build urls based on 
+"""
+from datetime import datetime as dt
 from itertools import product
-from agrimetscraper.utils.configsetter import Configger
-from agrimetscraper.utils.dbopen import dbconnect
-from agrimetscraper.utils.mylogger import SetLog
-from agrimetscraper.utils.validations import Validator
-from agrimetscraper.utils.converters import StringToList
-from agrimetscraper.utils import decorators
+from agrimetscraper.utils.helpertools import urlencodedquery
 
 
+class Urlpreprocessor:
+    """Combine sites and parameters
+
+    call urlpipe
+    
+    Raises:
+        ValueError -- [description]
+        ValueError -- [description]
+    
+    Returns:
+        chunk sized id and parameters(limit 20 a batch)
+    """
 
 
-class UrlPreprocessor:
+    def __init__(self, siteids, params, limit=20):
+        assert type(siteids) == list, "Input 'siteids' should be type of list of a tuple [(site1, ), (site2, )]" # fetch from database
+        assert type(params) == list, "Input 'params' should be type of a list"
+        assert type(limit) == int, "Input 'stride' should be of type int"
+        assert limit > 0 & limit <= 20, "stride value is between 1 and 20"
 
-	def __init__(self, siteids, params, stride=20):
-		
-		assert type(siteids) == list, "Input 'siteids' should be type of list of a tuple [(site1, ), (site2, )]"
-		assert type(params) == list, "Input 'params' should be type of a list"
-		assert type(stride) == int, "Input 'stride' should be of type int"
-		assert stride > 0 & stride <= 20, "stride value is between 1 and 20"
+        if type(siteids[0]) == tuple:
+            self.siteids = [ i[0] for i in siteids]
 
-		self.siteids = siteids
-		self.params = params
-		self.stride = stride
-
-
-	def __UnpackSiteIDs(self, idlist):
-		"""
-		Unpack IDs and combine it with params
-		"""
-
-		# itertools import product ---> returns [(x, y), (a, b)]
-		assert type(idlist) == list, 'idlist -- type of list'
-
-		product_id_params = [' '.join([i[0], i[1].lower()]) for i in product(idlist, self.params)]
-
-		return ','.join(product_id_params)
+        self.siteids = siteids
+        self.params = params
+        self.limit = limit
 
 
-	def UrlPipeline(self):
+    def __unpackID(self, idlist):
+        """Unpack ids and combine it with params
+        for example: abei MM, abei MN, abei MM
+        
+        Arguments:
+            idlist {list} -- a list of site ids
+        """
 
-		sites = [i[0] for i in self.siteids]
+        assert type(idlist) == list, "idlist is type of a list"
 
-		if len(sites) > 0:
-			for i in range(0, len(sites), self.stride):
-				partial_ids = sites[i:i+self.stride]
-				yield self.__UnpackSiteIDs(partial_ids)
-		else:
-			raise ValueError('No site ids found')
+        if len(idlist) > 0:
+            product_id_params = [' '.join([i[0], i[1].lower()]) for i in product(idlist, self.params)]
+        else:
+            raise ValueError("idlist can not be empty")
 
+        return ",".join(product_id_params)
 
-
-class UrlAssembly:
-
-
-	@staticmethod
-	def __GetSites(cfg_path): 
-
-		Validator.path_checker(cfg_path)
-
-		# set up logger
-		logger = SetLog(cfg_path, 'UrlAssembly||GetSites')
-
-		# load database
-		config = Configger(cfg_path)
-		dbpath = config.Getcfg('DB_SETTINGS', 'database_path')
-		station = config.Getcfg('DB_SETTINGS', 'stationtable')
-
-
-		# states
-		states = config.Getcfg('STATION_SETTINGS', 'states')
-
-
-
-
-		col_siteid = 'siteid'
-		col_state = 'state'
-
-
-		# turn into list
-		
-		States = StringToList(states)
-		States_placeholder = ','.join(['?']*len(States))
-		sql_sites = '''SELECT {} FROM {} WHERE {} in ({})'''.format(col_siteid, station, col_state, States_placeholder)
-
-
-		try:
-			logger.info('Open database in {}'.format(__name__))
-			conn = dbconnect(dbpath)
-		except:
-			logger.error('Error in open database in {}'.format(__name__))
-			print('Error in open database in {}'.format(__name__))
-
-		cur = conn.cursor()
-		cur.execute(sql_sites, tuple(States))
-		sites = cur.fetchall()
-
-		return sites
-
-
-	@classmethod
-	def GetUrls(cls, cfg_path):		
-
-		# set up logger
-		logger = SetLog(cfg_path, 'UrlAssembly||GetUrls')
-
-		try:
-			Validator.path_checker(cfg_path)
-		except:
-			logger.error('cfg_path is not valid')
-
-
-		config = Configger(cfg_path)
-		#url
-		baseurl = config.Getcfg('URL_SETTINGS', 'baseurl')
-		urlformat = config.Getcfg('URL_SETTINGS', 'format')
-		wparams = config.Getcfg('URL_SETTINGS', 'weather_parameters')
-
-		start_time = config.Getcfg('URL_SETTINGS', 'start')
-		end_time = config.Getcfg('URL_SETTINGS', 'end')
-		backdays = config.Getcfg('URL_SETTINGS', 'back')
-		if start_time != "":
-				start_time = datetime.strptime(start_time, "%Y-%m-%d").date()
-		if end_time != "":
-			end_time = datetime.strptime(end_time, "%Y-%m-%d").date()
-		if type(backdays) == str and backdays != "":
-			backdays = int(backdays)
-
-		params = StringToList(wparams)
-
-		sites = UrlAssembly.__GetSites(cfg_path)
-
-		logger.info('Unpacking sites and parameters')
-		preProcess = UrlPreprocessor(sites, params)
-		unpack_sites = [ i for i in preProcess.UrlPipeline()]
-
-		queries = [ decorators.UrlEncodedQuery(list=i, format=urlformat, start=start_time, end=end_time, back=backdays) for i in unpack_sites]
-
-		logger.info('Making Urls')
-		urls = [ decorators.UrlJoin(baseurl, i) for i in queries]
-
-		logger.info('Urls Generated')
-		print('Urls Generated')
-		return urls
+    def urlpipe(self):
+        if len(self.siteids) > 0:
+            for i in range(0, len(self.siteids), self.limit):
+                chunk = self.siteids[i:i+self.limit]
+                yield self.__unpackID(chunk)
+        else:
+            raise ValueError("list of siteids is empty")
 
 
 
 
 
+class Urlassembly:
+    """
+    Assemble urls with other options
+
+    such as format, start and end
+    """
+
+    def __init__(self, siteids, params, baseurl, limit, **kwargs):
+        self.siteids = siteids
+        self.params = params 
+        self.baseurl = baseurl
+        self.kwargs = kwargs
+        self.limit = limit
+
+    def assemblyURL(self, logger):
+        """assemble urls
+        
+        Arguments:
+            logger {[type]} -- [description]
+        
+        Returns:
+            A generator -- a url generator
+        """
+
+
+        logger.info("Urlassermbly")
+        try:
+            preprocess = Urlpreprocessor(self.siteids, self.params, self.limit)
+        except:
+            logger.error("Error: Urlpreprocessor")
+            print("Error: Urlpreprocessor")
+            return
+            
+        unpacked_sites = preprocess.urlpipe()
+
+        queries = ( urlencodedquery(list=i, **self.kwargs) for i in unpacked_sites )
+
+        urls = ( self.baseurl+i for i in queries ) 
+
+        return urls
+
+    def __str__(self):
+        return f"baseurl is {self.baseurl}"
 
 
 
 
+
+    
