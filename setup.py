@@ -6,7 +6,7 @@ with open("README.md", "r") as fh:
 
 setuptools.setup(
         name="agrimetscraper",
-        version="0.1.0",
+        version="0.1.1",
         author="Xiaoping Li",
         author_email="lixiaopi@oregonstate.edu",
         description="A package to scrape AgriMet weather data",

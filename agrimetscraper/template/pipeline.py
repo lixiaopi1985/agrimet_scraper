@@ -87,8 +87,8 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
         logger.info("Pipeline Info: start crawler")
 
         existed_table = config.getconfig("DB_SETTINGS", "database_tables").split(",")
-        if dbtalbe not in existed_table:
-            config.setconfig("DB_SETTINGS", "datablse_table", dbtable)
+        if dbtable not in existed_table:
+            config.setconfig("DB_SETTINGS", "database_tables", dbtable)
         else:
             logger.exception(f"Pipeline Error: {dbtable} existed in the database already")
             raise ValueError(f"{dbtable} existed in the datatable already")
