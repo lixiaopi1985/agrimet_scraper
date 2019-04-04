@@ -14,9 +14,14 @@ import time
 # look for config file
 def agrimetscrape_pipeline(cfg_path, dbtable, freq):
 
+    to = time.localtime()
+    localTime = time.asctime(to)
+    startTime = time.time()
 
     logger = Setlog(cfg_path, "Agrimetscraper_Pipeline")
     config = Configtuner(cfg_path)
+
+    logger.info(f"Pipeline Initiated: [[[[ {localTime} ]]]]")
 
     # dbbase path
     dbpath = config.getconfig("DB_SETTINGS", "database_path")
@@ -80,6 +85,14 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
     try:
         
         logger.info("Pipeline Info: start crawler")
+
+        existed_table = config.getconfig("DB_SETTINGS", "database_tables").split(",")
+        if dbtalbe not in existed_table:
+            config.setconfig("DB_SETTINGS", "datablse_table", dbtable)
+        else:
+            logger.exception(f"Pipeline Error: {dbtable} existed in the database already")
+            raise ValueError(f"{dbtable} existed in the datatable already")
+
         for url in urls:
             logger.info(f"URL ---> \n{url}\n<---\n")
             scraper = Crawler(url)
@@ -89,7 +102,6 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
             try:
                 logger.info("Pipeline [Crawl Data] Info: process crawled data")
                 df = dataproc(response_text, urlformat)
-                logger.info(f"\n\n{df.head()}\n\n{df.tail()}\n\n")
             except:
                 logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                 print("Pipeline Error: process crawled data error")
@@ -110,11 +122,12 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
         print("Pipeline Error: crawler error")
         sys.exit(1)
 
+    endTime = time.time()
 
+    deltaTime = endTime - startTime
 
-
-
-    logger.info("Pipeline Info: Completed current crawling request")
+    conn.close()
+    logger.info(f"\n\n----------- Completed current crawling request. Used time {deltaTime} s-----------------------\n\n")
     print("Completed current crawling request")
 
 if __name__ == "__main__":
