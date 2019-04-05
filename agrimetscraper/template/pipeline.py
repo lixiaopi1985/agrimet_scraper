@@ -89,9 +89,7 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
         existed_table = config.getconfig("DB_SETTINGS", "database_tables").split(",")
         if dbtable not in existed_table:
             config.setconfig("DB_SETTINGS", "database_tables", dbtable)
-        else:
-            logger.exception(f"Pipeline Error: {dbtable} existed in the database already")
-            raise ValueError(f"{dbtable} existed in the datatable already")
+        
 
         for url in urls:
             logger.info(f"URL ---> \n{url}\n<---\n")
