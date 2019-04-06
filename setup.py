@@ -1,12 +1,14 @@
 import setuptools
+import agrimetscraper
 
 with open("README.md", "r") as fh:
     long_description = fh.read()
 
 
+
 setuptools.setup(
         name="agrimetscraper",
-        version="0.1.2",
+        version=agrimetscraper.__version__,
         author="Xiaoping Li",
         author_email="lixiaopi@oregonstate.edu",
         description="A package to scrape AgriMet weather data",
