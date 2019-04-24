@@ -118,9 +118,16 @@ def main():
     station = Stationinfo(url, stationfilepath)
     station_df = station.querysites()
 
+
+    config.setconfig("DB_SETTINGS", "database_tables", "StationInfo")
+
+    logger = Setlog(configfilepath, "startproject")
+    
+
     if dbtype == 'sql':
         # create db file
         print(f"making an database: {dbname}")
+        logger.info(f"making an SQL database: {dbname}")
         conn = sqlite3.connect(dbfilepath)
         station_df.save2sql("StationInfo", conn)
         
@@ -131,19 +138,19 @@ def main():
     elif dbtype == 'mongodb':
 
         print(f"making an database: {dbname}")
+        logger.info(f"making a mongo database: {dbname}")
         # create collection from panda
         df = station_df.df_filtered
         data = df.to_dict(orient='records')
-        Mongosetup(dbdir).start_mongodb()
-        db, client = get_db(project)
+        mongo_conn = Mongosetup(dbdir, logger)
+        mongo_conn.start_mongodb()
+        db, _ = get_db(project)
         db = db['StationInfo'] # collection
         db.insert_many(data)
-        client.close()
 
 
-    config.setconfig("DB_SETTINGS", "database_tables", "StationInfo")
 
-    logger = Setlog(configfilepath, "startproject")
+
     logger.info(f"{project} finished initialization.")
 
     # copy files to local project location

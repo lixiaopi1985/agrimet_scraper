@@ -11,6 +11,7 @@ from agrimetscraper.utils.configreader import Configtuner
 import time
 from agrimetscraper.utils.mongoSetup import Mongosetup
 from agrimetscraper.utils.mongoDB import get_db
+import shutil
 
 
 # look for config file
@@ -139,13 +140,27 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
     elif dbtype == 'mongodb':
 
         logger.info("Pipeline info: connect to station information")
-        Mongosetup(dbpath).start_mongodb()
+        # default the connection is open
+        # try:
+        #     mongo_conn = Mongosetup(dbpath, logger)
+        # except:
+        #     logger.exception("--------> Mongo db connection error", exc_info = True)
+        #     sys.exit(1)
+
+        # mongo_conn.start_mongodb()
         db,client = get_db(dbname)
-        station_info = db['StationInfo']
-        sites_cur = station_info.find({"state": {"$in": list(states_list)}})
-        sites = []
-        for site in sites_cur:
-            sites.append(site["siteid"])
+        try:
+            logger.info("Pipeline info: << Connect to mongod db >>")
+            station_info = db['StationInfo']
+            sites_cur = station_info.find({"state": {"$in": list(states_list)}})
+            sites = []
+            for site in sites_cur:
+                sites.append(site["siteid"])
+            logger.info("------------------------> Fetched sites from station info")
+        except:
+            logger.exception("Mongodb error")
+            client.close()
+            sys.exit(1)
 
         # url assembly
         try:
@@ -159,12 +174,17 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
 
         # crawl
         # set up collection in mongodb
-        data_mongo = db[dbtable]
+        try:
+            logger.info(f"----------------------------> create {dbtable} collections in database")
+            data_mongo = db[dbtable]
+        except:
+            client.close()
+            logger.exception(f"---------Error ----------> create {dbtable} collection error in mongodb")
+            sys.exit(1)
+
 
         try:
-            
             logger.info("Pipeline Info: start crawler")
-
             for url in urls:
                 logger.info(f"URL ---> \n{url}\n<---\n")
                 scraper = Crawler(url)
@@ -181,22 +201,19 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                     print("Pipeline Error: process crawled data error")
                     sys.exit(1)
 
-                try:
-                    logger.info("Pipeline [Crawl Data] Info: write data into database")
-
-                except:
-                    logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
-                    sys.exit(1)
-
                 time.sleep(1)
 
             client.close()
+            logger.info("----------->  |||| Success ---> shutdown server: mongodb")
         
 
         except:
+            client.close()
+            logger.info("----------->  |||| Error ---> shutdown server: mongodb")
             logger.exception("Pipeline Error: crawler error", exc_info=True)
             print("Pipeline Error: crawler error")
             sys.exit(1)
+
 
 
     endTime = time.time()
