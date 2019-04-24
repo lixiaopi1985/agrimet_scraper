@@ -12,6 +12,7 @@ myproject
 """
 import argparse
 import os
+import sys
 import sqlite3
 from configparser import RawConfigParser
 import shutil
@@ -20,21 +21,25 @@ from agrimetscraper.utils.configreader import Configtuner
 from agrimetscraper.utils.stationinfo import Stationinfo
 from agrimetscraper.utils.mylogger import Setlog
 from agrimetscraper.template import pipeline, runproject
-
+from agrimetscraper.utils.mongoSetup import Mongosetup
+from agrimetscraper.utils.mongoDB import get_db
 
 def main():
 
-    parser = argparse.ArgumentParser(
-        prog="startproject",
-        usage="startproject.py -p myproject"
-    )
+    try:
+        parser = argparse.ArgumentParser(
+            prog="startproject",
+            usage="startproject.py -p myproject"
+        )
 
-    parser.add_argument("-p", dest="project", nargs="?", type=str, help="<string> name of your project")
-    parser.add_argument("-s", dest="saveit", action="store_true", help="<bool> store station id into database? if specified, return true")
-    args = parser.parse_args()
-    project = args.project
-    saveStation = args.saveit
-
+        parser.add_argument("-p", dest="project", nargs="?", type=str, help="<string> name of your project")
+        parser.add_argument("-t", dest="dbtype", nargs="?", default="sql", choices=['sql', 'mongodb'], help="<string> store data type: sql or mongodb")
+        args = parser.parse_args()
+        project = args.project
+        dbtype = args.dbtype
+    except argparse.ArgumentError as argerror:
+        print(argerror)
+        sys.exit(1)
 
 
     print("""
@@ -84,6 +89,7 @@ def main():
     global_settings['PROJECT_SETTINGS']['project_path']=project_path
     global_settings['PROJECT_SETTINGS']['project_setting_path']=configfilepath
     global_settings['DB_SETTINGS']['database_path']=dbfilepath
+    global_settings['DB_SETTINGS']['database_type']=dbtype
     global_settings['DB_SETTINGS']['database_name']=(dbname)
     global_settings['LOG_SETTINGS']['logfile_path']=logfilepath
     global_settings['LOG_SETTINGS']['logfile_name']=logfilename
@@ -104,9 +110,6 @@ def main():
     with open(logfilepath, 'a') as log_handle:
         pass
 
-    # create db file
-    print(f"making an database: {dbname}")
-    conn = sqlite3.connect(dbfilepath)
 
     # create stations.csv
     print("retrieving stations information as csv")
@@ -114,13 +117,31 @@ def main():
     url = config.getconfig('STATION_SETTINGS', 'station_url')
     station = Stationinfo(url, stationfilepath)
     station_df = station.querysites()
-    if saveStation:
+
+    if dbtype == 'sql':
+        # create db file
+        print(f"making an database: {dbname}")
+        conn = sqlite3.connect(dbfilepath)
         station_df.save2sql("StationInfo", conn)
-        config.setconfig("DB_SETTINGS", "database_tables", "StationInfo")
+        
 
-    conn.commit()
-    conn.close()
+        conn.commit()
+        conn.close()
 
+    elif dbtype == 'mongodb':
+
+        print(f"making an database: {dbname}")
+        # create collection from panda
+        df = station_df.df_filtered
+        data = df.to_dict(orient='records')
+        Mongosetup(dbdir).start_mongodb()
+        db, client = get_db(project)
+        db = db['StationInfo'] # collection
+        db.insert_many(data)
+        client.close()
+
+
+    config.setconfig("DB_SETTINGS", "database_tables", "StationInfo")
 
     logger = Setlog(configfilepath, "startproject")
     logger.info(f"{project} finished initialization.")
@@ -131,6 +152,8 @@ def main():
     shutil.copy2(runprojectpath, project_path)
     shutil.copy2(pipelinepath, project_path)
     print(f"\n{project} finished initialization.\nYou can modify your local '.ini' file in the config folder to schedule scrape time and then run RunProject!\n")
+
+
 
 
 if __name__ == "__main__":

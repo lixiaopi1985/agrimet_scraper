@@ -17,7 +17,7 @@ setuptools.setup(
         url="https://github.com/lixiaopi1985/agrimet_scraper",
         scripts=['agrimetscraper/bin/startproject.py',],
         packages=setuptools.find_packages(),
-        install_requires=['pandas', 'numpy', 'python-crontab', 'requests', 'fake_useragent', 'bs4'],
+        install_requires=['pandas', 'numpy', 'python-crontab', 'requests', 'fake_useragent', 'bs4', 'pymongo'],
         classifiers=[
             "Programming Language :: Python :: 3",
             "License :: OSI Approved :: MIT License",

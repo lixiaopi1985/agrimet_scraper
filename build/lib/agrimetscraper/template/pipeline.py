@@ -9,22 +9,21 @@ from agrimetscraper.utils.dbwrite import dataframe_to_sql
 from agrimetscraper.utils.mylogger import Setlog
 from agrimetscraper.utils.configreader import Configtuner
 import time
+from agrimetscraper.utils.mongoSetup import Mongosetup
+from agrimetscraper.utils.mongoDB import get_db
 
 
 # look for config file
 def agrimetscrape_pipeline(cfg_path, dbtable, freq):
 
-    to = time.localtime()
-    localTime = time.asctime(to)
-    startTime = time.time()
-
     logger = Setlog(cfg_path, "Agrimetscraper_Pipeline")
     config = Configtuner(cfg_path)
 
-    logger.info(f"Pipeline Initiated: [[[[ {localTime} ]]]]")
 
-    # dbbase path
-    dbpath = config.getconfig("DB_SETTINGS", "database_path")
+
+    to = time.localtime()
+    localTime = time.asctime(to)
+    startTime = time.time()
 
     
     if freq == "instant":
@@ -32,10 +31,21 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
     elif freq == "daily":
         baseurl_section = "URL_DAILY_SETTINGS"
     else:
+        logger.exception("freq parameter is not set")
         raise ValueError("freq is either daily or instant")
 
+    
 
+    # dbbase path
+    dbpath = config.getconfig("DB_SETTINGS", "database_path")
+    dbname = config.getconfig("DB_SETTINGS", "database_name").split(".")[0]
+    # dbtype
+    dbtype = config.getconfig("DB_SETTINGS", "database_type")
 
+    logger.info(f"""\n------Pipeline Initiated: [[[[ {localTime} ]]]]-----\n
+        -->>> dbtyp: {dbtype}""")
+
+    
     # look for what url link: daily or instant
     baseurl = config.getconfig(baseurl_section, "baseurl")
     params_text = config.getconfig(baseurl_section, "weather_parameters")
@@ -45,86 +55,155 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
     backdays = config.getconfig(baseurl_section, "back")
     flags = config.getconfig(baseurl_section, "flags")
     limit = int(config.getconfig(baseurl_section, "limit"))
+    params = params_text.split(",")
 
 
     # station info
     states = config.getconfig("STATION_SETTINGS", "states")
     states_list = tuple(states.split(","))
-    try:
+
+    # check existed data table or collections
+    existed_table = config.getconfig("DB_SETTINGS", "database_tables").split(",")
+
+    if dbtable not in existed_table:
+        config.setconfig("DB_SETTINGS", "database_tables", dbtable)
+
+    if dbtype == 'sql':
+
+        try:
+            logger.info("Pipeline info: connect to station information")
+            conn = sqlite3.connect(dbpath)
+        except:
+            logger.exception("Pipeline Error: connection to database during pipeline")
+            sys.exit(1)
+
+        cur = conn.cursor()
+        placeholder = ",".join(["?"]*len(states_list))
+        site_sql = f"SELECT siteid FROM StationInfo WHERE state in ({placeholder});"
+        try:
+            cur.execute(site_sql, states_list)
+        except:
+            logger.exception("Pipeline Error: an error occurred when getting site ids from database")
+            print("Pipeline Error: an error occurred when getting site ids from database")
+            sys.exit(1)
+
+        sites = [ i[0] for i in cur.fetchall()]
+
+        
+
+        # url assembly
+        try:
+            logger.info("Pipeline Info: url assembly")
+            urlassem = Urlassembly(sites, params, baseurl, limit, start=startdate, end=enddate, back=backdays, format=linkformat)
+            urls = urlassem.assemblyURL(logger)
+        except:
+            logger.exception("Pipeline Error: url assembly error")
+            print("Pipeline Error: url assembly error")
+            sys.exit(1)
+
+        # crawl
+        try:
+            
+            logger.info("Pipeline Info: start crawler")
+
+            for url in urls:
+                logger.info(f"URL ---> \n{url}\n<---\n")
+                scraper = Crawler(url)
+                response_text = scraper.startcrawl(logger)
+                urlformat = scraper.geturlformat()
+                # process data
+                try:
+                    logger.info("Pipeline [Crawl Data] Info: process crawled data")
+                    df = dataproc(response_text, urlformat)
+                except:
+                    logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
+                    print("Pipeline Error: process crawled data error")
+                    sys.exit(1)
+
+                try:
+                    logger.info("Pipeline [Crawl Data] Info: write data into database")
+                    dataframe_to_sql(df, dbpath, dbtable, logger)
+                except:
+                    logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
+                    sys.exit(1)
+
+                time.sleep(1)
+
+            conn.close()
+
+        except:
+            logger.exception("Pipeline Error: crawler error", exc_info=True)
+            print("Pipeline Error: crawler error")
+            sys.exit(1)
+
+    elif dbtype == 'mongodb':
+
         logger.info("Pipeline info: connect to station information")
-        conn = sqlite3.connect(dbpath)
-    except:
-        logger.exception("Pipeline Error: connection to database during pipeline")
-        sys.exit(1)
+        Mongosetup(dbpath).start_mongodb()
+        db,client = get_db(dbname)
+        station_info = db['StationInfo']
+        sites_cur = station_info.find({"state": {"$in": list(states_list)}})
+        sites = []
+        for site in sites_cur:
+            sites.append(site["siteid"])
 
-    cur = conn.cursor()
-    placeholder = ",".join(["?"]*len(states_list))
-    site_sql = f"SELECT siteid FROM StationInfo WHERE state in ({placeholder});"
-    try:
-        cur.execute(site_sql, states_list)
-    except:
-        logger.exception("Pipeline Error: an error occurred when getting site ids from database")
-        print("Pipeline Error: an error occurred when getting site ids from database")
-        sys.exit(1)
+        # url assembly
+        try:
+            logger.info("Pipeline Info: url assembly")
+            urlassem = Urlassembly(sites, params, baseurl, limit, start=startdate, end=enddate, back=backdays, format=linkformat)
+            urls = urlassem.assemblyURL(logger)
+        except:
+            logger.exception("Pipeline Error: url assembly error")
+            print("Pipeline Error: url assembly error")
+            sys.exit(1)
 
-    sites = [ i[0] for i in cur.fetchall()]
-    params = params_text.split(",")
+        # crawl
+        # set up collection in mongodb
+        data_mongo = db[dbtable]
 
-    # url assembly
-    try:
-        logger.info("Pipeline Info: url assembly")
-        urlassem = Urlassembly(sites, params, baseurl, limit, start=startdate, end=enddate, back=backdays, format=linkformat)
-        urls = urlassem.assemblyURL(logger)
-    except:
-        logger.exception("Pipeline Error: url assembly error")
-        print("Pipeline Error: url assembly error")
-        sys.exit(1)
+        try:
+            
+            logger.info("Pipeline Info: start crawler")
+
+            for url in urls:
+                logger.info(f"URL ---> \n{url}\n<---\n")
+                scraper = Crawler(url)
+                response_text = scraper.startcrawl(logger)
+                urlformat = scraper.geturlformat()
+                # process data
+                try:
+                    logger.info("Pipeline [Crawl Data] Info: process crawled data")
+                    data_df = dataproc(response_text, urlformat)
+                    data_df_row = data_df.to_dict(orient='records')
+                    data_mongo.insert_many(data_df_row)
+                except:
+                    logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
+                    print("Pipeline Error: process crawled data error")
+                    sys.exit(1)
+
+                try:
+                    logger.info("Pipeline [Crawl Data] Info: write data into database")
+
+                except:
+                    logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
+                    sys.exit(1)
+
+                time.sleep(1)
+
+            client.close()
         
 
-    # crawl
-    try:
-        
-        logger.info("Pipeline Info: start crawler")
+        except:
+            logger.exception("Pipeline Error: crawler error", exc_info=True)
+            print("Pipeline Error: crawler error")
+            sys.exit(1)
 
-        existed_table = config.getconfig("DB_SETTINGS", "database_tables").split(",")
-        if dbtable not in existed_table:
-            config.setconfig("DB_SETTINGS", "database_tables", dbtable)
-        
-
-        for url in urls:
-            logger.info(f"URL ---> \n{url}\n<---\n")
-            scraper = Crawler(url)
-            response_text = scraper.startcrawl(logger)
-            urlformat = scraper.geturlformat()
-            # process data
-            try:
-                logger.info("Pipeline [Crawl Data] Info: process crawled data")
-                df = dataproc(response_text, urlformat)
-            except:
-                logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
-                print("Pipeline Error: process crawled data error")
-                sys.exit(1)
-
-            # write to data base
-            try:
-                logger.info("Pipeline [Crawl Data] Info: write data into database")
-                dataframe_to_sql(df, dbpath, dbtable, logger)
-            except:
-                logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
-                sys.exit(1)
-
-            time.sleep(5)
-
-    except:
-        logger.exception("Pipeline Error: crawler error", exc_info=True)
-        print("Pipeline Error: crawler error")
-        sys.exit(1)
 
     endTime = time.time()
 
     deltaTime = endTime - startTime
 
-    conn.close()
+    
     logger.info(f"\n\n----------- Completed current crawling request. Used time {deltaTime} s-----------------------\n\n")
     print("Completed current crawling request")
 

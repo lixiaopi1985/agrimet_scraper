@@ -19,6 +19,7 @@ basic_configs = {
 						},
 
 	"DB_SETTINGS": {
+					"database_type":"",
 					"database_path":"", 
 					"database_name":"", 
 					},

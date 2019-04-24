@@ -10,15 +10,19 @@ from agrimetscraper.scheduler.scheduler import Scheduler
 
 def main():
 
-    parser = argparse.ArgumentParser()
+    try:
+        parser = argparse.ArgumentParser()
 
-    parser.add_argument('-f', dest="freq", default="daily", choices=["daily", "instant"], type=str, help="<string> refer to config.ini file to choose which baseurl: daily or instant")
-    parser.add_argument('-n', dest='dbtable', type=str, help="<string> name for the new table added to the database")
+        parser.add_argument('-f', dest="freq", default="daily", choices=["daily", "instant"], type=str, help="<string> refer to config.ini file to choose which baseurl: daily or instant")
+        parser.add_argument('-n', dest='dbtable', type=str, help="<string> name for the new table added to the database")
 
-    args = parser.parse_args()
+        args = parser.parse_args()
 
-    urlsection = args.freq
-    dbtable = args.dbtable
+        urlsection = args.freq
+        dbtable = args.dbtable
+    except:
+        print('No argument parsed')
+        sys.exit(1)
 
 
     pypath = sys.executable
