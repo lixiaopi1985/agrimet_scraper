@@ -194,8 +194,13 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                 try:
                     logger.info("Pipeline [Crawl Data] Info: process crawled data")
                     data_df = dataproc(response_text, urlformat)
-                    data_df_row = data_df.to_dict(orient='records')
-                    data_mongo.insert_many(data_df_row)
+                    data_df_row = data_df.to_dict(orient='records') # list of dict [{}, {}]
+                    # "DateTime", "Sites", "params"
+                    for i, v in enumerate(data_df_row):
+                        _datetime = v['DateTime']
+                        _site = v['Sites']
+                        filter_object = {"DateTime": _datetime, "Sites": _site}
+                        data_mongo.update(filter_object, {"$set": v}, upsert=True) #mongo db update if no match find
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                     print("Pipeline Error: process crawled data error")
