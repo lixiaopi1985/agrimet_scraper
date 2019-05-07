@@ -8,6 +8,7 @@ from agrimetscraper.coretools.urlbuilder import Urlassembly
 from agrimetscraper.utils.dbwrite import dataframe_to_sql
 from agrimetscraper.utils.mylogger import Setlog
 from agrimetscraper.utils.configreader import Configtuner
+from agrimetscraper.utils.instantData_aggregate import timeAggregate
 import time
 from agrimetscraper.utils.mongoSetup import Mongosetup
 from agrimetscraper.utils.mongoDB import get_db
@@ -194,13 +195,17 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                 try:
                     logger.info("Pipeline [Crawl Data] Info: process crawled data")
                     data_df = dataproc(response_text, urlformat)
-                    data_df_row = data_df.to_dict(orient='records') # list of dict [{}, {}]
+                    # drop na
+                    # convert datetime to datetime and convert parameters to float
+                    aggDf = timeAggregate(data_df)
+                    data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
                     # "DateTime", "Sites", "params"
-                    for i, v in enumerate(data_df_row):
-                        _datetime = v['DateTime']
-                        _site = v['Sites']
-                        filter_object = {"DateTime": _datetime, "Sites": _site}
-                        data_mongo.update(filter_object, {"$set": v}, upsert=True) #mongo db insert many
+                    for ind, val in enumerate(data_df_row):
+                        _date = val['Dates']
+                        _time = val['Time']
+                        _site = val['Sites']
+                        filter_object = {"DateTime": _date, "Time": _time, "Sites": _site}
+                        data_mongo.update(filter_object, {"$set": val}, upsert=True) #mongo db update if no match find
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                     print("Pipeline Error: process crawled data error")
