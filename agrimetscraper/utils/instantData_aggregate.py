@@ -29,7 +29,7 @@ def col_types(df):
     return coltypes
 
 def timeAggregate(df, fmt="%Y-%m-%d %H:%M", freq='H'):
-    """This function is used to aggregate your pandas df to a certain freq interval. Note: NA will be removed
+    """This function is used to aggregate your pandas df to a certain freq interval. Note: NA will be removed, data with flags will be removed too
     
     Arguments:
         df {string} -- pandas dataframe
@@ -47,8 +47,9 @@ def timeAggregate(df, fmt="%Y-%m-%d %H:%M", freq='H'):
     sitecol = [ i for i in colnames if coltypes[i] == 'sites']
     datecol = [ i for i in colnames if coltypes[i] == 'datetime']
 
-    # remove na
+    # remove na and mark number with flags na
     df_replace_na = df.replace('NA', np.nan)
+    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
     # dropna
     df_replace_na.dropna(inplace=True)
     # conver to datetime

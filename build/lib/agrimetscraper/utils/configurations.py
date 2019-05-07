@@ -7,6 +7,7 @@ TP      Average Dew Point Temperature   (Deg F)
 TU      15 Minute Average Relative Humidity (%)      
 TUX     15 Minute Maximum Relative Humidity (%)       
 TUN     15 Minute Minimum Relative Humidity (%)   
+OB      Air temperature, 15 minutes instantaneous (F)
 
 """
 

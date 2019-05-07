@@ -13,6 +13,8 @@ import time
 from agrimetscraper.utils.mongoSetup import Mongosetup
 from agrimetscraper.utils.mongoDB import get_db
 import shutil
+import re
+import numpy as np
 
 
 # look for config file
@@ -117,6 +119,10 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                 try:
                     logger.info("Pipeline [Crawl Data] Info: process crawled data")
                     df = dataproc(response_text, urlformat)
+                    df_replace_na = df.replace('NA', np.nan)
+                    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
+                    # dropna
+                    df_replace_na.dropna(inplace=True)
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                     print("Pipeline Error: process crawled data error")
@@ -124,7 +130,7 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
 
                 try:
                     logger.info("Pipeline [Crawl Data] Info: write data into database")
-                    dataframe_to_sql(df, dbpath, dbtable, logger)
+                    dataframe_to_sql(df_replace_na, dbpath, dbtable, logger)
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
                     sys.exit(1)
@@ -195,17 +201,27 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                 try:
                     logger.info("Pipeline [Crawl Data] Info: process crawled data")
                     data_df = dataproc(response_text, urlformat)
+                    aggDf = data_df.copy()
+                    
                     # drop na
                     # convert datetime to datetime and convert parameters to float
-                    aggDf = timeAggregate(data_df)
-                    data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
-                    # "DateTime", "Sites", "params"
-                    for ind, val in enumerate(data_df_row):
-                        _date = val['Dates']
-                        _time = val['Time']
-                        _site = val['Sites']
-                        filter_object = {"DateTime": _date, "Time": _time, "Sites": _site}
-                        data_mongo.update(filter_object, {"$set": val}, upsert=True) #mongo db update if no match find
+                    if freq == "instant":
+                        aggDf = timeAggregate(data_df)
+                        data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
+                        for ind, val in enumerate(data_df_row):
+                            _date = val['Dates']
+                            _time = val['Time']
+                            _site = val['Sites']
+                            filter_object = {"DateTime": _date, "Time": _time, "Sites": _site}
+                            data_mongo.update(filter_object, {"$set": val}, upsert=True) #mongo db update if no match find
+                    else:
+                        data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
+                        # "DateTime", "Sites", "params"
+                        for ind, val in enumerate(data_df_row):
+                            _date = val['DateTime']
+                            _site = val['Sites']
+                            filter_object = {"DateTime": _date, "Sites": _site}
+                            data_mongo.update(filter_object, {"$set": val}, upsert=True) #mongo db update if no match find
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                     print("Pipeline Error: process crawled data error")
