@@ -214,7 +214,7 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                     if freq == "instant":
                         aggDf = timeAggregate(data_df)
                         data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
-                        for ind, val in enumerate(data_df_row):
+                        for _, val in enumerate(data_df_row):
                             _date = val['Dates']
                             _time = val['Time']
                             _site = val['Sites']

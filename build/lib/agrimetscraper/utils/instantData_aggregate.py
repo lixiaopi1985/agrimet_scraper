@@ -66,7 +66,8 @@ def timeAggregate(df, fmt="%Y-%m-%d %H:%M", freq='H'):
     df_grouped = df_replace_na.groupby([sitecol[0], df_replace_na[datecol[0]].dt.date, pd.Grouper(key=datecol[0], freq=freq)]).mean()
     df_new = df_grouped.rename_axis(['Sites', 'Dates', 'Time']).reset_index()
     # save Dates to string for mongdb
-    df_new['Dates'] = df_new['Dates'].astype('object')
+    df_new['Dates'] = df_new['Dates'].apply(lambda x: str(x) )
+    df_new['Time'] = df_new['Time'].apply(lambda x: x.hour)
 
     return df_new
 
