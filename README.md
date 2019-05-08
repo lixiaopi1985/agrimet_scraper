@@ -25,3 +25,5 @@ run project: python runproject.py -f "instant"|"daily" -n dbtable
 
 set scheduler in .ini file (this program uses crontab)
 
+**For instant data, program will aggregate 15 minutes into 1 hour interval and average the parameters
+

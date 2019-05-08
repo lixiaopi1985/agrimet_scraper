@@ -119,10 +119,8 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                 try:
                     logger.info("Pipeline [Crawl Data] Info: process crawled data")
                     df = dataproc(response_text, urlformat)
-                    df_replace_na = df.replace('NA', np.nan)
-                    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
-                    # dropna
-                    df_replace_na.dropna(inplace=True)
+                    aggDf = df.copy()
+
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: process crawled data error", exc_info=True)
                     print("Pipeline Error: process crawled data error")
@@ -130,6 +128,14 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
 
                 try:
                     logger.info("Pipeline [Crawl Data] Info: write data into database")
+
+                    if freq == "instant":
+                        aggDf = timeAggregate(aggDf)
+
+                    df_replace_na = aggDf.replace('NA', np.nan)
+                    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
+                    # dropna
+                    df_replace_na.dropna(inplace=True)
                     dataframe_to_sql(df_replace_na, dbpath, dbtable, logger)
                 except:
                     logger.exception("Pipeline [Crawl Data] Error: write data to database error", exc_info=True)
@@ -215,7 +221,12 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
                             filter_object = {"DateTime": _date, "Time": _time, "Sites": _site}
                             data_mongo.update(filter_object, {"$set": val}, upsert=True) #mongo db update if no match find
                     else:
-                        data_df_row = aggDf.to_dict(orient='records') # list of dict [{}, {}]
+
+                        df_replace_na = aggDf.replace('NA', np.nan)
+                        df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
+                        # dropna
+                        df_replace_na.dropna(inplace=True)
+                        data_df_row = df_replace_na.to_dict(orient='records') # list of dict [{}, {}]
                         # "DateTime", "Sites", "params"
                         for ind, val in enumerate(data_df_row):
                             _date = val['DateTime']
