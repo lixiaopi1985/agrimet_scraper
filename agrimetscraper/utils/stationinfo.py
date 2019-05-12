@@ -64,6 +64,7 @@ class Stationinfo:
         df_selected = df.loc[:, ["siteid", "state", "description", "latitude", "longitude", "elevation"]].copy()
         self.df_filtered = df_selected[ ~((df_selected['latitude'] == 0 ) & (df_selected['longitude'] == 0 )) ]
         self.df_filtered.sort_values(by="siteid", inplace=True)
+        self.df_filtered['siteid'] = self.df_filtered['siteid'].str.strip()
         self.df_filtered.to_csv(self.savedir, index=None, header=True)
 
         return self
