@@ -38,7 +38,7 @@ basic_configs = {
 
 	"URL_INSTANT_SETTINGS":{
 					"baseurl":"https://www.usbr.gov/pn-bin/instant.pl?", 
-					"weather_parameters":"TU","OB",
+					"weather_parameters":"TU,OB",
 					"format":"csv",
 					"start":"",
 					"end":"",
