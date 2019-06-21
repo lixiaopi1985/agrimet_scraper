@@ -172,6 +172,9 @@ def main():
 
         config.setconfig("DB_SETTINGS", "connect_string", connect_string)
 
+        # create collection from panda
+        df = station_df.df_filtered
+        data = df.to_dict(orient='records')
         db, _ = get_db(project, connect_string)
         db = db['StationInfo']
         db.insert_many(data) # no need to consider update, once the project is setup, this collection will stand alone
