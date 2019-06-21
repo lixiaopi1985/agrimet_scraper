@@ -256,7 +256,7 @@ def agrimetscrape_pipeline(cfg_path, dbtable, freq):
             print("Pipeline Error: crawler error")
             sys.exit(1)
 
-    elif dbtype == "altas":
+    elif dbtype == "atlas":
 
         logger.info("Pipeline info: connect to station information")
 
