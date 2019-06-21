@@ -16,7 +16,7 @@ class Mongosetup:
     def check_mongo_installed():
 
         if not shutil.which('mongod'):
-            raise EnvironmentError("No mongodb installed in the path")
+            raise EnvironmentError("No mongod installed in the path")
 
 
     def start_mongodb(self):

@@ -33,10 +33,12 @@ def main():
         )
 
         parser.add_argument("-p", dest="project", nargs="?", type=str, help="<string> name of your project")
-        parser.add_argument("-t", dest="dbtype", nargs="?", default="sql", choices=['sql', 'mongodb'], help="<string> store data type: sql or mongodb")
+        parser.add_argument("-t", dest="dbtype", nargs="?", default="sql", choices=['sql', 'mongodb', 'atlas'], help="<string> store data type: sql or mongodb or to the atlas cloud")
+        
         args = parser.parse_args()
         project = args.project
         dbtype = args.dbtype
+
     except argparse.ArgumentError as argerror:
         print(argerror)
         sys.exit(1)
@@ -122,6 +124,8 @@ def main():
     config.setconfig("DB_SETTINGS", "database_tables", "StationInfo")
 
     logger = Setlog(configfilepath, "startproject")
+
+    connect_string = config.getconfig("DB_SETTINGS", "connect_string")
     
 
     if dbtype == 'sql':
@@ -137,6 +141,10 @@ def main():
 
     elif dbtype == 'mongodb':
 
+        if connect_string != "localhost":
+            logger.exception("host selected not match database type. Choose mongodb for local storage in your ini file")
+            raise ValueError("dbtype is not matching to the host type. Choose mongodb for local storage in your ini file")
+
         print(f"making an database: {dbname}")
         logger.info(f"making a mongo database: {dbname}")
         # create collection from panda
@@ -144,9 +152,25 @@ def main():
         data = df.to_dict(orient='records')
         mongo_conn = Mongosetup(dbdir, logger)
         mongo_conn.start_mongodb()
-        db, _ = get_db(project)
+        db, _ = get_db(project, connect_string)
         db = db['StationInfo'] # collection
-        db.insert_many(data)
+        db.insert_many(data) # no need to consider update, once the project is setup, this collection will stand alone
+
+    elif dbtype == "altas":
+        print(f"connecting to Mongo Atlas: database name: {dbname}")
+        logger.info(f"connecting to Mongo Atlas: database name: {dbname}")
+
+        connect_string = input("input your connect string to atlas: ")
+
+        if not connect_string.startswith("mongodb+srv://"):
+            logger.exception("host selected not match database type. Choose atlas for cloud storage in your ini file")
+            raise ValueError("dbtype is not matching to the host type. Choose atlas for cloud storage in your ini file")
+
+        config.setconfig("DB_SETTINGS", "connect_string", connect_string)
+
+        db, _ = get_db(project, connect_string)
+        db = db['StationInfo']
+        db.insert_many(data) # no need to consider update, once the project is setup, this collection will stand alone
 
 
 

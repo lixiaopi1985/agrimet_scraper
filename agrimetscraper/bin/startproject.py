@@ -160,10 +160,13 @@ def main():
         print(f"connecting to Mongo Atlas: database name: {dbname}")
         logger.info(f"connecting to Mongo Atlas: database name: {dbname}")
 
+        connect_string = input("input your connect string to atlas: ")
+
         if not connect_string.startswith("mongodb+srv://"):
             logger.exception("host selected not match database type. Choose atlas for cloud storage in your ini file")
             raise ValueError("dbtype is not matching to the host type. Choose atlas for cloud storage in your ini file")
 
+        config.setconfig("DB_SETTINGS", "connect_string", connect_string)
 
         db, _ = get_db(project, connect_string)
         db = db['StationInfo']
