@@ -11,7 +11,7 @@ Python virtual environment is preferred
 
 `pip install agrimetscraper`
 
-`startproject -p <yourproject> -t <select database type: mongodb or sql>`
+`startproject -p <yourproject> -t <select database type: mongodb or sql or atlas>`
 
 It will create a directory for your project, this folder will contain yourproject-config, yourproject-log, yourproject-database, yourproject-stations
 
