@@ -22,7 +22,8 @@ basic_configs = {
 	"DB_SETTINGS": {
 					"database_type":"",
 					"database_path":"", 
-					"database_name":"", 
+					"database_name":"",
+					"connect_string":"localhost"
 					},
 
 	"URL_DAILY_SETTINGS":{
