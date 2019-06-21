@@ -29,7 +29,7 @@ def main():
     try:
         parser = argparse.ArgumentParser(
             prog="startproject",
-            usage="startproject.py -p myproject"
+            usage="startproject.py -p myproject -t dbtype"
         )
 
         parser.add_argument("-p", dest="project", nargs="?", type=str, help="<string> name of your project")
@@ -156,7 +156,7 @@ def main():
         db = db['StationInfo'] # collection
         db.insert_many(data) # no need to consider update, once the project is setup, this collection will stand alone
 
-    elif dbtype == "altas":
+    elif dbtype == "atlas":
         print(f"connecting to Mongo Atlas: database name: {dbname}")
         logger.info(f"connecting to Mongo Atlas: database name: {dbname}")
 
