@@ -15,6 +15,8 @@ Python virtual environment is preferred
 
 It will create a directory for your project, this folder will contain yourproject-config, yourproject-log, yourproject-database, yourproject-stations
 
+>If you choose 'atlas', the program will prompt you for your atlas connection string and the password 
+
 
 cd into your project, change .ini file if needed
 

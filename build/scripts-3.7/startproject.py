@@ -23,6 +23,7 @@ from agrimetscraper.utils.mylogger import Setlog
 from agrimetscraper.template import pipeline, runproject
 from agrimetscraper.utils.mongoSetup import Mongosetup
 from agrimetscraper.utils.mongoDB import get_db
+import getpass
 
 def main():
 
@@ -160,7 +161,10 @@ def main():
         print(f"connecting to Mongo Atlas: database name: {dbname}")
         logger.info(f"connecting to Mongo Atlas: database name: {dbname}")
 
-        connect_string = input("input your connect string to atlas: ")
+        connect_string = input("\nInput your connect string to atlas: ")
+        password = getpass.getpass("\nPassword: ")
+
+        connect_string = connect_string.replace('<password>', password)
 
         if not connect_string.startswith("mongodb+srv://"):
             logger.exception("host selected not match database type. Choose atlas for cloud storage in your ini file")
