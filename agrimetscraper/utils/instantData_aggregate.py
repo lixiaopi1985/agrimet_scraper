@@ -49,7 +49,7 @@ def timeAggregate(df, fmt="%Y-%m-%d %H:%M", freq='H'):
 
     # remove na and mark number with flags na
     df_replace_na = df.replace('NA', np.nan)
-    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[+-]$'), np.nan, inplace=True)
+    df_replace_na.replace(re.compile('[0-9]{1,2}\.[0-9]{1,2}[e+-]$'), np.nan, inplace=True)
     # dropna
     df_replace_na.dropna(inplace=True)
     # conver to datetime
